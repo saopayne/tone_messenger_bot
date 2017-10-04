@@ -1,1 +1,1 @@
-web: gunicorn Unit9MessengerBot:app
+web: gunicorn app:app
