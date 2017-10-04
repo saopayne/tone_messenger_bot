@@ -1,12 +1,14 @@
+# -*- coding: utf-8 -*-
 import sys
 import json
-import requests
+import pip._vendor.requests as requests
 from flask import Flask, request
 
 from url_constants import UrlConstants
 from url_constants import EnvConstants
 from log_status import StatusType
 from watson_analyser import WatsonAnalyzer
+from mood import Mood
 
 __author__ = 'Oyewale Ademola'
 
@@ -18,11 +20,13 @@ def verify():
     # when the endpoint is registered as a webhook, it must echo back
     # the 'hub.challenge' value it receives in the query arguments
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if not request.args.get("hub.verify_token") == EnvConstants.fb_page_verify_token:
+        if not request.args.get("hub.verify_token") == 'unit9_verify_token':
+            print(EnvConstants.fb_page_verify_token)
+            print(EnvConstants.fb_page_access_token)
             return "Verification token mismatch", 403
         return request.args["hub.challenge"], 200
 
-    return "Hello world", 200
+    return "Hello Unit9!", 200
 
 
 @app.route('/', methods=['POST'])
@@ -31,29 +35,32 @@ def webhook():
 
     data = request.get_json()
     logger(data, status=StatusType.INFO)
-
+    current_mood = Mood.TONE_NEUTRAL
     if data["object"] == "page":
-
         for entry in data["entry"]:
             for messaging_event in entry["messaging"]:
-
                 if messaging_event.get("message"):  # someone sent us a message
-
-                    # the facebook ID of the person sending you the message
+                    # the facebook ID of the person sending the bot the message
                     sender_id = messaging_event["sender"]["id"]
-                    # the recipient's ID, which should be your page's facebook ID
-                    recipient_id = messaging_event["recipient"]["id"]
-                    # the message's text
+                    # the message sent by the user
                     message_text = messaging_event["message"]["text"]
-                    # analyse the text from fb with Watson to determine the mood
-                    watson_analyze = WatsonAnalyzer()
-                    results = watson_analyze.analyze_tone(text=message_text)
-                    if results:
-                        watson_analyze.display_results(results)  # show what it looks like
-                        # based on the mood, send the appropriate message
-                        send_message(sender_id, "roger that!")
+                    print('Message received from the user is: ', message_text)
+                    if message_text.lower() == 'mood':
+                        send_message(sender_id, current_mood)
                     else:
-                        logger("Whoops, something went wrong while analyzing tone of the message", StatusType.ERROR)
+                        # analyse the text from fb with Watson to determine the mood
+                        watson_analyze = WatsonAnalyzer()
+                        mood = Mood()
+                        results = watson_analyze.analyze_tone(message_text)
+                        if results:
+                            mood_tone = watson_analyze.get_emotion_tone(results)  # show what it looks like
+                            current_mood = mood_tone
+                            # based on the mood, send the appropriate message
+                            mood_level = mood.convert_tone_to_mood(mood_tone)
+                            message_to_send = mood.get_reply_from_mood(mood_level)
+                            send_message(sender_id, message_to_send)
+                        else:
+                            logger("Whoops, something went wrong while analyzing tone of the message", StatusType.ERROR)
 
                 if messaging_event.get("delivery"):  # delivery confirmation
                     pass
@@ -84,6 +91,7 @@ def send_message(recipient_id, message_text):
             "text": message_text
         }
     })
+
     r = requests.post(UrlConstants.URL_FB_MESSAGES, params=params, headers=headers, data=data)
     if r.status_code != 200:
         logger(r.status_code, StatusType.ERROR)
