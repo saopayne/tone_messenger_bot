@@ -2,7 +2,7 @@
 import sys
 import json
 import pip._vendor.requests as requests
-from flask import Flask, request
+from flask import Flask, request, session
 
 from url_constants import UrlConstants
 from url_constants import EnvConstants
@@ -32,10 +32,11 @@ def verify():
 @app.route('/', methods=['POST'])
 def webhook():
     # endpoint for processing incoming messaging events
-
+    mood = Mood()
     data = request.get_json()
     logger(data, status=StatusType.INFO)
-    current_mood = Mood.TONE_NEUTRAL
+    session['current_mood'] = mood.TONE_NEUTRAL  # store the current mood in session
+    default_reply = 'Hello there, how may I help you today?'
     if data["object"] == "page":
         for entry in data["entry"]:
             for messaging_event in entry["messaging"]:
@@ -44,17 +45,19 @@ def webhook():
                     sender_id = messaging_event["sender"]["id"]
                     # the message sent by the user
                     message_text = messaging_event["message"]["text"]
-                    print('Message received from the user is: ', message_text)
-                    if message_text.lower() == 'mood':
+                    message_text = message_text.lower()
+                    if message_text == 'mood':
+                        current_mood = session['current_mood']
                         send_message(sender_id, current_mood)
+                    elif message_text in mood.default_messages:
+                        send_message(sender_id, default_reply)
                     else:
                         # analyse the text from fb with Watson to determine the mood
                         watson_analyze = WatsonAnalyzer()
-                        mood = Mood()
                         results = watson_analyze.analyze_tone(message_text)
                         if results:
                             mood_tone = watson_analyze.get_emotion_tone(results)  # show what it looks like
-                            current_mood = mood_tone
+                            session['current_mood'] = mood_tone  # update the current mood in session
                             # based on the mood, send the appropriate message
                             mood_level = mood.convert_tone_to_mood(mood_tone)
                             message_to_send = mood.get_reply_from_mood(mood_level)

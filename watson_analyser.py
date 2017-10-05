@@ -16,6 +16,11 @@ class WatsonAnalyzer:
     CATEGORY_SOCIAL_TONE = 'Social Tone'
 
     def analyze_tone(self, text):
+        """
+        Sends a request to IBM tone analyze api and returns the text
+        :param text: the message to analyze
+        :return: string
+        """
         watson_username = EnvConstants.watson_username
         watson_password = EnvConstants.watson_password
         headers = {"content-type": "text/plain"}
@@ -23,12 +28,16 @@ class WatsonAnalyzer:
         try:
             requestObject = requests.post(UrlConstants.URL_WATSON, auth=(watson_username, watson_password),
                                           headers=headers, data=data)
-            print(requestObject.text)
             return requestObject.text
         except:
             return False
 
     def get_emotion_tone(self, data):
+        """
+        Returns the tone with the highest score from watson analyze api result
+        :param data: the data from watson analyze
+        :return: tone with the highest score
+        """
         data = json.loads(str(data))
         tone_dict = dict()
         for category in data['document_tone']['tone_categories']:
@@ -45,15 +54,19 @@ class WatsonAnalyzer:
                         tone_dict[Mood.TONE_JOY] = round(tone['score'] * 100, 1)
                     elif tone['tone_name'] == Mood.TONE_SADNESS:
                         tone_dict[Mood.TONE_SADNESS] = round(tone['score'] * 100, 1)
-            print('The dictionary of the tones with the scores is:')
-            print(tone_dict)
             max_tone = max(tone_dict, key=lambda k: tone_dict[k])
-            print('The most likely tone of this message is ==> ', max_tone)
+            # if the score is lower than this, the probability of the max being
+            # the tone is ambiguous and tone is assigned Neutral
             if tone_dict[max_tone] < 30:
                 return Mood.TONE_NEUTRAL
             return max_tone
 
     def display_results(self, data):
+        """
+        Displays the result from tone analyze api in a friendly formatted way
+        :param data:
+        :return: a formatted display of the result from analyze api
+        """
         data = json.loads(str(data))
         print(data)
         for i in data['document_tone']['tone_categories']:
@@ -65,23 +78,18 @@ class WatsonAnalyzer:
         print()
 
     def analyze_single_text(self, text):
-        mood_list = list()
+        """
+        Returns a list of all tone scores
+        :param text:
+        :return: list
+        """
         json_output = json.loads(str(text))
         # store the values in a list and get the max
         anger = json_output['document_tone']['tone_categories'][0]['tones'][0]['score']
-        print('anger ', anger)
         fear = json_output['document_tone']['tone_categories'][0]['tones'][1]['score']
         disgust = json_output['document_tone']['tone_categories'][0]['tones'][2]['score']
         joy = json_output['document_tone']['tone_categories'][0]['tones'][3]['score']
         sadness = json_output['document_tone']['tone_categories'][0]['tones'][4]['score']
         # get the highest scored among them
-        mood_list.append(anger)
-        mood_list.append(fear)
-        mood_list.append(disgust)
-        mood_list.append(joy)
-        mood_list.append(sadness)
-        print('mood list is ', mood_list)
-
-"""
-
-"""
+        mood_list = [anger, fear, disgust, joy, sadness]
+        return mood_list

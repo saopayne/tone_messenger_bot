@@ -40,6 +40,9 @@ class Mood:
         'King Henry VIII slept with a gigantic axe behind him'
     ]
 
+    default_messages = ['Hello', 'Hi', 'Who is here?', '?', ' ', 'Good day', 'Good afternoon', 'Good morning',
+                        'Good evening']
+
     def get_mood_list(self, mood):
         """
         Get the list of the mood corresponding to the level
