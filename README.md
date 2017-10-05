@@ -27,8 +27,11 @@ The bot should also reply with its current mood for a special message "mood".
 
 The following environmental variables must be set:
 > WATSON_USERNAME=1322070a-87a2-4433-b7b3-e18f5db99f69
+
 > WATSON_PASSWORD=kEOwPPlIhUSp
+
 > PAGE_ACCESS_TOKEN=EAAB8jMhzYzQBAMoAtAUfLcA6P7TQqhzOOlp55EhvG9eDxzqCYGZBwJJRsKMZAir3znMeG6z7bRG0c33TRgRZBafb0mERNMyZCZBZA7ZCzZCv8gZABMx0YdNLy9ZC5RLVW0SZARGaLKW99Q46ZA35gR56Wh1ddFQx2hql0vJ6w0riJmDf4DGsxSSL8c9n
+
 > PAGE_VERIFY_TOKEN=unit9_verify_token
 
 #### Dependencies
