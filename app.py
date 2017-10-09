@@ -20,13 +20,13 @@ def verify():
     # when the endpoint is registered as a webhook, it must echo back
     # the 'hub.challenge' value it receives in the query arguments
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if not request.args.get("hub.verify_token") == 'unit9_verify_token':
+        if not request.args.get("hub.verify_token") == "unit9_verify_token":
             print(EnvConstants.fb_page_verify_token)
             print(EnvConstants.fb_page_access_token)
             return "Verification token mismatch", 403
         return request.args["hub.challenge"], 200
 
-    return "Hello Unit9!", 200
+    return "Hello Bot!", 200
 
 
 @app.route('/', methods=['POST'])
@@ -35,8 +35,8 @@ def webhook():
     mood = Mood()
     data = request.get_json()
     logger(data, status=StatusType.INFO)
-    session['current_mood'] = mood.TONE_NEUTRAL  # store the current mood in session
-    default_reply = 'Hello there, how may I help you today?'
+    session["current_mood"] = mood.TONE_NEUTRAL  # store the current mood in session
+    default_reply = mood.CONST_DEFAULT_REPLY
     if data["object"] == "page":
         for entry in data["entry"]:
             for messaging_event in entry["messaging"]:
@@ -44,37 +44,42 @@ def webhook():
                     # the facebook ID of the person sending the bot the message
                     sender_id = messaging_event["sender"]["id"]
                     # the message sent by the user
-                    message_text = messaging_event["message"]["text"]
-                    message_text = message_text.lower()
-                    if message_text == 'mood':
-                        current_mood = session['current_mood']
-                        send_message(sender_id, current_mood)
-                    elif message_text in mood.default_messages:
-                        send_message(sender_id, default_reply)
-                    else:
-                        # analyse the text from fb with Watson to determine the mood
-                        watson_analyze = WatsonAnalyzer()
-                        results = watson_analyze.analyze_tone(message_text)
-                        if results:
-                            mood_tone = watson_analyze.get_emotion_tone(results)  # show what it looks like
-                            session['current_mood'] = mood_tone  # update the current mood in session
-                            # based on the mood, send the appropriate message
-                            mood_level = mood.convert_tone_to_mood(mood_tone)
-                            message_to_send = mood.get_reply_from_mood(mood_level)
-                            send_message(sender_id, message_to_send)
+                    if messaging_event["message"]["text"]:
+                        message_text = messaging_event["message"]["text"]
+                        # if can be an image or attachment ?
+                        message_text = message_text.lower()
+                        if message_text == mood.CONST_MOOD:
+                            current_mood = session["current_mood"]
+                            send_message(sender_id, current_mood)
+                        elif message_text in mood.default_messages:
+                            send_message(sender_id, default_reply)
                         else:
-                            logger("Whoops, something went wrong while analyzing tone of the message", StatusType.ERROR)
-
+                            send_response(mood=mood, message_text=message_text, sender_id=sender_id)
+                    else:
+                        logger("Can't process the message as it is not a text, it can either "
+                               "be an attachment or something :) ", StatusType.INFO)
                 if messaging_event.get("delivery"):  # delivery confirmation
                     pass
-
                 if messaging_event.get("optin"):  # optin confirmation
                     pass
-
                 if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
                     pass
+    return "OK", 200
 
-    return "ok", 200
+
+def send_response(mood, message_text, sender_id):
+    # analyse the text from fb with Watson to determine the mood
+    watson_analyze = WatsonAnalyzer()
+    results = watson_analyze.analyze_tone(message_text)
+    if results:
+        mood_tone = watson_analyze.get_emotion_tone(results)  # show what it looks like
+        session["current_mood"] = mood_tone  # update the current mood in session
+        # based on the mood, send the appropriate message
+        mood_level = mood.convert_tone_to_mood(mood_tone)
+        message_to_send = mood.get_reply_from_mood(mood_level)
+        send_message(sender_id, message_to_send)
+    else:
+        logger("Whoops, something went wrong while analyzing tone of the message", StatusType.ERROR)
 
 
 def send_message(recipient_id, message_text):
@@ -102,7 +107,7 @@ def send_message(recipient_id, message_text):
 
 
 def logger(message, status):
-    output = ''
+    output = ""
     if status == StatusType.ERROR:
         output = "ERROR:" + str(message) + ": Status-> {type}".format(type=status)
     elif status == StatusType.DEBUG:

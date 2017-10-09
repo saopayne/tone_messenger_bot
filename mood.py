@@ -6,6 +6,9 @@ __author__ = 'Oyewale Ademola'
 
 class Mood:
 
+    CONST_MOOD = "mood"
+    CONST_DEFAULT_REPLY = "Hello there, how may I help you today?"
+
     MOOD_LEVEL_POSITIVE = 'positive'
     MOOD_LEVEL_NEGATIVE = 'negative'
     MOOD_LEVEL_NEUTRAL = 'neutral'
