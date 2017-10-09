@@ -36,7 +36,7 @@ The following environmental variables must be set:
 
 #### Dependencies
 - To run, the dependencies in the requirements.txt file have to be installed.
-- Run `pip install requirements.txt` to install them
+- Run `pip install -r requirements.txt` to install them
 
 #### Deployment instructions
 - Deployment was done to Heroku
