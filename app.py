@@ -4,6 +4,7 @@ import json
 import pip._vendor.requests as requests
 from flask import Flask, request, session
 
+from dbhelper import DBHelper
 from url_constants import UrlConstants
 from url_constants import EnvConstants
 from log_status import StatusType
@@ -20,9 +21,7 @@ def verify():
     # when the endpoint is registered as a webhook, it must echo back
     # the 'hub.challenge' value it receives in the query arguments
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if not request.args.get("hub.verify_token") == "unit9_verify_token":
-            print(EnvConstants.fb_page_verify_token)
-            print(EnvConstants.fb_page_access_token)
+        if not request.args.get("hub.verify_token") == EnvConstants.fb_page_verify_token:
             return "Verification token mismatch", 403
         return request.args["hub.challenge"], 200
 
@@ -32,10 +31,17 @@ def verify():
 @app.route('/', methods=['POST'])
 def webhook():
     # endpoint for processing incoming messaging events
+    db = DBHelper()
     mood = Mood()
     data = request.get_json()
     logger(data, status=StatusType.INFO)
-    session["current_mood"] = mood.TONE_NEUTRAL  # store the current mood in session
+    mood_items = db.get_items()
+    current_mood = ''
+    if mood in mood_items:
+        current_mood = mood_items[0]
+    else:
+        db.add_item(mood.TONE_NEUTRAL)
+        current_mood = mood.TONE_NEUTRAL
     default_reply = mood.CONST_DEFAULT_REPLY
     if data["object"] == "page":
         for entry in data["entry"]:
@@ -49,7 +55,12 @@ def webhook():
                         # if can be an image or attachment ?
                         message_text = message_text.lower()
                         if message_text == mood.CONST_MOOD:
-                            current_mood = session["current_mood"]
+                            mood_items = db.get_items()
+                            if mood in mood_items:
+                                current_mood = mood
+                                db.delete_item(mood)
+                            else:
+                                pass
                             send_message(sender_id, current_mood)
                         elif message_text in mood.default_messages:
                             send_message(sender_id, default_reply)
