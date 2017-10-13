@@ -4,7 +4,7 @@
 
 #### Quick Summary
 
-The goalis to create an emotional Facebook Messenger chat bot.
+The goal is to create an emotional Facebook Messenger chat bot.
 Depending on whether the user sends it a positive or negative message, it will gradually get happier or sadder, which will determine its responses.
 All the responses are generic and simply visualise the mood of the bot.
 
@@ -19,6 +19,10 @@ The bot should also replies with its current mood for a special message "mood".
 0.1
 
 ### How do I get set up? ###
+
+* Using Docker
+
+> docker pull saopayne/tone-messenger-bot:latest
 
 * Configuration
 
