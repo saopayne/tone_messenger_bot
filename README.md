@@ -29,7 +29,7 @@ The bot should also replies with its current mood for a special message "mood".
 - Setup Python
 - Open this project in an IDE of your choice
 
-The following environmental variables must be set:
+The following environment variables must be set:
 > WATSON_USERNAME=''
 
 > WATSON_PASSWORD=''
